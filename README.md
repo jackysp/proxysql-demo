@@ -18,10 +18,10 @@ This repository demonstrates how to use ProxySQL for traffic shadowing on **macO
 
 ### Required MySQL Servers
 You need two MySQL servers running:
-- **MySQL A (Primary)**: `localhost:3306` with root password `password`
-- **MySQL B (Shadow)**: `localhost:3307` with root password `password`
+- **MySQL A (Primary)**: `localhost:3306` with root user (no password)
+- **MySQL B (Shadow)**: `localhost:3307` with root user (no password)
 
-Don't have MySQL servers? Use our helper script: `./setup_mysql.sh`
+**Note**: You'll need to set up these MySQL servers separately before running the ProxySQL demo.
 
 ## 🚀 Quick Start
 
@@ -31,23 +31,15 @@ git clone <this-repo>
 cd proxysql-demo
 ```
 
-### 2. Setup MySQL Servers (if needed)
-```bash
-# Interactive setup helper
-./setup_mysql.sh
-
-# Or automated Docker setup
-./setup_mysql.sh setup
-```
-
-### 3. Start ProxySQL
+### 2. Start ProxySQL
 ```bash
 ./start_proxysql.sh
 ```
 
-### 4. Test Traffic Shadowing
+### 3. Test Traffic Shadowing
 ```bash
-./run_sysbench.sh
+# Run simple demo (reentrant - safe to run multiple times)
+./demo.sh
 ```
 
 That's it! 🎉
@@ -56,12 +48,11 @@ That's it! 🎉
 
 ```
 proxysql-demo/
-├── README.md                 # This file
-├── docker-compose.yml        # Docker composition for ProxySQL
-├── proxysql.cnf              # ProxySQL configuration file
-├── start_proxysql.sh         # Main script to start ProxySQL
-├── run_sysbench.sh           # Script to validate traffic shadowing
-└── setup_mysql.sh            # Helper script to setup MySQL servers
+├── README.md                    # This file
+├── docker-compose.yml           # Docker composition for ProxySQL  
+├── proxysql.cnf                 # Minimal ProxySQL configuration
+├── start_proxysql.sh            # Start ProxySQL (reentrant)
+└── demo.sh                      # Simple traffic demo (reentrant)
 ```
 
 ## ⚙️ How It Works
@@ -75,8 +66,7 @@ The demo configures ProxySQL with:
    - Hostgroup 1: Shadow server (`localhost:3307`)
 
 2. **Query Rules**:
-   - `SELECT` queries → Primary server + Mirror to shadow server
-   - `INSERT/UPDATE/DELETE` queries → Primary server only
+   - `ALL` queries → Primary server + Mirror to shadow server
 
 3. **Users**:
    - `root` and `sbtest` users with access to both servers
@@ -86,7 +76,7 @@ The demo configures ProxySQL with:
 ```
 Application → ProxySQL (port 6033) → MySQL Primary (port 3306)
                     ↓
-                    └→ MySQL Shadow (port 3307) [SELECT queries only]
+                    └→ MySQL Shadow (port 3307) [ALL queries mirrored]
 ```
 
 ## 🔧 Detailed Usage
@@ -99,22 +89,22 @@ The `start_proxysql.sh` script:
 3. ⚙️ Loads configuration into ProxySQL runtime
 4. 📊 Shows current status and statistics
 
-### Running Tests
+### Simple Demo Workflow
 
-The `run_sysbench.sh` script:
-1. 🧪 Prepares test database and tables
-2. 🏃‍♂️ Runs mixed read/write workload
-3. 📖 Runs read-only workload (demonstrates mirroring)
-4. 📊 Shows traffic analysis and statistics
-5. 🧹 Optional cleanup of test data
+**Traffic Demo (`demo.sh`)**:
+1. ✅ Checks if ProxySQL is running
+2. 🧹 Resets ProxySQL statistics for clean results
+3. 📊 Shows BEFORE query counts (both servers)
+4. ⚡ Executes 10 mixed queries through ProxySQL
+5. 📊 Shows AFTER query counts (proving mirroring)
+6. 📋 Shows the query rule that enables mirroring
 
-### MySQL Setup Helper
-
-The `setup_mysql.sh` script provides:
-- 📋 Manual setup instructions
-- 🐳 Automated Docker MySQL setup
-- 🔍 Connection testing
-- 🛑 Container management
+**Start ProxySQL (`start_proxysql.sh`)**:
+1. ✅ Checks prerequisites (Docker)
+2. 🔍 Detects if ProxySQL is already running
+3. 🚀 Starts or restarts ProxySQL container as needed
+4. ⚙️ Loads configuration (only if not already loaded)
+5. 📊 Shows current status
 
 ## 📊 Monitoring and Analysis
 
@@ -135,6 +125,18 @@ SELECT * FROM stats_mysql_query_rules;
 1. **Connection Pool Stats**: Shows query distribution between servers
 2. **Query Rule Hits**: Shows how many queries matched each rule
 3. **Command Counters**: Shows types of SQL commands executed
+4. **Shadow Traffic Ratio**: Percentage of queries mirrored to shadow server
+5. **Backend Performance**: Response times and error rates per server
+
+### Validation Checklist
+
+To verify shadow traffic is working correctly:
+
+✅ **Hostgroup 0 (Primary)**: Should receive all queries (reads + writes)  
+✅ **Hostgroup 1 (Shadow)**: Should receive all mirrored queries  
+✅ **Query Rules**: Mirror rule should show hits with mirror_hostgroup=1  
+✅ **Shadow Ratio**: Should be ~100% (ALL queries are mirrored)  
+✅ **No Errors**: Connection pools should show ConnERR=0
 
 ## 🐛 Troubleshooting
 
@@ -154,12 +156,13 @@ docker compose down && docker compose up -d
 
 **MySQL connection failed**
 ```bash
-# Test MySQL connectivity
-./setup_mysql.sh test
-
 # Check if ports are in use
 lsof -i :3306
 lsof -i :3307
+
+# Test direct MySQL connectivity
+mysql -h127.0.0.1 -P3306 -uroot -e "SELECT 1"
+mysql -h127.0.0.1 -P3307 -uroot -e "SELECT 1"
 ```
 
 **Sysbench errors**
@@ -168,7 +171,7 @@ lsof -i :3307
 sysbench --version
 
 # Test ProxySQL connectivity
-mysql -h127.0.0.1 -P6033 -uroot -ppassword -e "SELECT 1"
+mysql -h127.0.0.1 -P6033 -uroot -e "SELECT 1"
 ```
 
 ### Port Conflicts
@@ -185,9 +188,9 @@ If you have existing MySQL installations:
 docker compose down
 ```
 
-### Remove MySQL Docker Containers
+### Clean Up Generated Reports
 ```bash
-./setup_mysql.sh stop
+rm -f sysbench_report_*.txt shadow_validation_*.txt
 ```
 
 ### Complete Cleanup

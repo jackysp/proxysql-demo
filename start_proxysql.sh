@@ -89,6 +89,17 @@ check_mysql_connections() {
 }
 
 start_proxysql() {
+    # Check if ProxySQL is already running
+    if docker ps | grep -q proxysql-demo; then
+        log_info "ProxySQL container is already running"
+        if docker exec proxysql-demo mysql -h127.0.0.1 -P6032 -uadmin -padmin -e "SELECT 1" &>/dev/null; then
+            log_success "ProxySQL is healthy and ready"
+            return 0
+        else
+            log_warning "ProxySQL container exists but is not responding, restarting..."
+        fi
+    fi
+    
     log_info "Starting ProxySQL container..."
     
     # Create sql_scripts directory if it doesn't exist
@@ -101,7 +112,7 @@ start_proxysql() {
         COMPOSE_CMD="docker-compose"
     fi
     
-    # Stop any existing container
+    # Stop any existing container (gracefully)
     $COMPOSE_CMD down 2>/dev/null || true
     
     # Start ProxySQL
@@ -133,6 +144,15 @@ start_proxysql() {
 configure_proxysql() {
     log_info "Configuring ProxySQL..."
     
+    # Check if configuration is already loaded
+    local server_count
+    server_count=$(docker exec proxysql-demo mysql -h127.0.0.1 -P6032 -uadmin -padmin -e "SELECT COUNT(*) FROM mysql_servers;" 2>/dev/null | tail -1) || server_count=0
+    
+    if [[ "$server_count" -gt 0 ]]; then
+        log_info "ProxySQL configuration already loaded (found $server_count servers)"
+        return 0
+    fi
+    
     # Load configuration into runtime
     docker exec proxysql-demo mysql -h127.0.0.1 -P6032 -uadmin -padmin -e "
         LOAD MYSQL SERVERS TO RUNTIME;
@@ -143,7 +163,7 @@ configure_proxysql() {
         SAVE MYSQL USERS TO DISK;
         SAVE MYSQL QUERY RULES TO DISK;
         SAVE MYSQL VARIABLES TO DISK;
-    "
+    " 2>/dev/null
     
     log_success "ProxySQL configuration loaded"
 }
@@ -152,7 +172,7 @@ show_status() {
     log_info "ProxySQL Status:"
     echo
     echo "ProxySQL Admin Interface: mysql -h127.0.0.1 -P6032 -uadmin -padmin"
-    echo "ProxySQL MySQL Interface:  mysql -h127.0.0.1 -P6033 -uroot -ppassword"
+    echo "ProxySQL MySQL Interface:  mysql -h127.0.0.1 -P6033 -uroot"
     echo
     
     log_info "MySQL Servers Status:"
@@ -186,7 +206,7 @@ main() {
     
     echo
     log_success "ProxySQL setup completed!"
-    log_info "Use './run_sysbench.sh' to test traffic shadowing"
+    log_info "Use './sysbench_demo.sh' to test traffic shadowing"
     echo
     log_info "To stop ProxySQL: docker compose down"
 }
