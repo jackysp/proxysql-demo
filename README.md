@@ -12,11 +12,14 @@ This repository demonstrates how to use ProxySQL for traffic shadowing on **macO
 ## 📋 Prerequisites
 
 ### Required Software
+
 - **Docker Desktop** for Mac - [Install here](https://www.docker.com/products/docker-desktop/)
 - **MySQL Client** - Install via Homebrew: `brew install mysql-client`
 
 ### Required MySQL Servers
+
 You need two MySQL servers running:
+
 - **MySQL A (Primary)**: `localhost:3306` with root user (no password)
 - **MySQL B (Shadow)**: `localhost:3307` with root user (no password)
 
@@ -25,17 +28,20 @@ You need two MySQL servers running:
 ## 🚀 Quick Start
 
 ### 1. Clone and Setup
+
 ```bash
 git clone <this-repo>
 cd proxysql-demo
 ```
 
 ### 2. Start ProxySQL
+
 ```bash
 ./start_proxysql.sh
 ```
 
 ### 3. Test Traffic Shadowing
+
 ```bash
 # Run simple demo (reentrant - safe to run multiple times)
 ./demo.sh
@@ -45,11 +51,11 @@ That's it! 🎉
 
 ## 📁 Project Structure
 
-```
+```text
 proxysql-demo/
 ├── README.md                    # This file
 ├── docker-compose.yml           # Docker composition for ProxySQL  
-├── proxysql.cnf                 # Minimal ProxySQL configuration
+├── proxysql.cnf                 # Minimal ProxySQL configuration (heavily commented)
 ├── start_proxysql.sh            # Start ProxySQL (reentrant)
 └── demo.sh                      # Simple traffic demo (reentrant)
 ```
@@ -68,11 +74,11 @@ The demo configures ProxySQL with:
    - `ALL` queries → Primary server + Mirror to shadow server
 
 3. **Users**:
-   - `root` and `sbtest` users with access to both servers
+   - `root` user with access to both servers
 
 ### Traffic Flow
 
-```
+```text
 Application → ProxySQL (port 6033) → MySQL Primary (port 3306)
                     ↓
                     └→ MySQL Shadow (port 3307) [ALL queries mirrored]
@@ -83,6 +89,7 @@ Application → ProxySQL (port 6033) → MySQL Primary (port 3306)
 ### Starting ProxySQL
 
 The `start_proxysql.sh` script:
+
 1. ✅ Checks prerequisites (Docker, MySQL connectivity)
 2. 🚀 Starts ProxySQL container using Docker Compose
 3. ⚙️ Loads configuration into ProxySQL runtime
@@ -91,6 +98,7 @@ The `start_proxysql.sh` script:
 ### Simple Demo Workflow
 
 **Traffic Demo (`demo.sh`)**:
+
 1. ✅ Checks if ProxySQL is running
 2. 🧹 Resets ProxySQL statistics for clean results
 3. 📊 Shows BEFORE query counts (both servers)
@@ -99,6 +107,7 @@ The `start_proxysql.sh` script:
 6. 📋 Shows the query rule that enables mirroring
 
 **Start ProxySQL (`start_proxysql.sh`)**:
+
 1. ✅ Checks prerequisites (Docker)
 2. 🔍 Detects if ProxySQL is already running
 3. 🚀 Starts or restarts ProxySQL container as needed
@@ -108,6 +117,7 @@ The `start_proxysql.sh` script:
 ## 📊 Monitoring and Analysis
 
 ### ProxySQL Admin Interface
+
 ```bash
 # Connect to ProxySQL admin interface
 mysql -h127.0.0.1 -P6032 -uadmin -padmin
@@ -141,7 +151,8 @@ To verify shadow traffic is working correctly:
 
 ### Common Issues
 
-**ProxySQL won't start**
+#### ProxySQL won't start
+
 ```bash
 # Check Docker status
 docker ps
@@ -153,7 +164,8 @@ docker logs proxysql-demo
 docker compose down && docker compose up -d
 ```
 
-**MySQL connection failed**
+#### MySQL connection failed
+
 ```bash
 # Check if ports are in use
 lsof -i :3306
@@ -164,7 +176,8 @@ mysql -h127.0.0.1 -P3306 -uroot -e "SELECT 1"
 mysql -h127.0.0.1 -P3307 -uroot -e "SELECT 1"
 ```
 
-**Demo errors**
+#### Demo errors
+
 ```bash
 # Test ProxySQL connectivity
 mysql -h127.0.0.1 -P6033 -uroot -e "SELECT 1"
@@ -176,6 +189,7 @@ docker ps | grep proxysql-demo
 ### Port Conflicts
 
 If you have existing MySQL installations:
+
 - Default MySQL usually runs on port 3306
 - You may need to stop it: `brew services stop mysql`
 - Or configure different ports in `proxysql.cnf`
@@ -183,17 +197,20 @@ If you have existing MySQL installations:
 ## 🧹 Cleanup
 
 ### Stop ProxySQL
+
 ```bash
 docker compose down
 ```
 
 ### Clean Up Demo Data
+
 ```bash
 # Clean up demo database
 mysql -h127.0.0.1 -P6033 -uroot -e "DROP DATABASE IF EXISTS demo;"
 ```
 
 ### Complete Cleanup
+
 ```bash
 docker compose down
 docker system prune -f  # Remove unused Docker resources
@@ -204,7 +221,8 @@ docker system prune -f  # Remove unused Docker resources
 ### Modifying MySQL Server Addresses
 
 Edit `proxysql.cnf`:
-```
+
+```text
 mysql_servers=
 (
     {
@@ -218,23 +236,6 @@ mysql_servers=
         port=3307
         hostgroup=1
         # ... other settings
-    }
-)
-```
-
-### Customizing Query Rules
-
-Add custom rules in `proxysql.cnf`:
-```
-mysql_query_rules=
-(
-    {
-        rule_id=3
-        match_pattern="^SELECT.*FROM specific_table.*"
-        destination_hostgroup=0
-        mirror_hostgroup=1
-        apply=1
-        comment="Mirror queries from specific table"
     }
 )
 ```

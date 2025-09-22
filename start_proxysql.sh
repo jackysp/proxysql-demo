@@ -1,7 +1,22 @@
 #!/bin/bash
 
-# ProxySQL Demo - Traffic Shadowing Setup
-# This script demonstrates how to use ProxySQL for traffic shadowing on macOS Apple Silicon
+# =============================================================================
+# ProxySQL Traffic Shadowing Setup Script
+# =============================================================================
+# This script sets up ProxySQL for traffic shadowing demonstration:
+# 1. Checks prerequisites (Docker, Docker Compose)
+# 2. Verifies MySQL servers are accessible (ports 3306, 3307)
+# 3. Starts ProxySQL container using Docker Compose
+# 4. Loads configuration from proxysql.cnf
+# 5. Displays ProxySQL status and configuration
+#
+# Prerequisites:
+# - Docker Desktop running
+# - Two MySQL servers on ports 3306 (primary) and 3307 (shadow)
+# - MySQL servers accessible with root user (no password)
+#
+# After running this script, use './demo.sh' to test traffic shadowing
+# =============================================================================
 
 set -e
 

@@ -1,62 +1,164 @@
+# ProxySQL Configuration for Traffic Shadowing Demo
+# This configuration demonstrates how to mirror ALL traffic from a primary MySQL server
+# to a shadow MySQL server for testing and analysis purposes.
+
+# =============================================================================
+# DATA DIRECTORY
+# =============================================================================
+# Directory where ProxySQL stores its internal SQLite database files
+# Contains: proxysql.db (configuration), proxysql_stats.db (statistics)
 datadir="/var/lib/proxysql"
 
-# Admin interface configuration
+# =============================================================================
+# ADMIN INTERFACE CONFIGURATION
+# =============================================================================
+# The admin interface allows you to monitor and configure ProxySQL
+# Access via: mysql -h127.0.0.1 -P6032 -uadmin -padmin
 admin_variables=
 {
+    # Admin credentials: username:password
+    # Default: admin:admin (change in production!)
     admin_credentials="admin:admin"
+    
+    # Admin interface binding: listen on all interfaces, port 6032
+    # This is ProxySQL's management/control port
     mysql_ifaces="0.0.0.0:6032"
 }
 
-# MySQL proxy configuration
+# =============================================================================
+# MYSQL PROXY CONFIGURATION
+# =============================================================================
+# Configuration for the MySQL proxy interface that applications connect to
+# Applications connect here instead of directly to MySQL servers
 mysql_variables=
 {
+    # Number of worker threads for handling MySQL connections
+    # More threads = better concurrency, but more memory usage
     threads=4
+    
+    # Maximum number of concurrent connections ProxySQL can handle
+    # Should be higher than your application's max connections
     max_connections=2048
+    
+    # MySQL proxy interface binding: listen on all interfaces, port 6033
+    # This is where applications connect (instead of direct MySQL)
     interfaces="0.0.0.0:6033"
+    
+    # Default schema when no database is specified in connection
     default_schema="information_schema"
 }
 
-# MySQL servers - Primary and Shadow
+# =============================================================================
+# MYSQL SERVERS CONFIGURATION
+# =============================================================================
+# Define the backend MySQL servers that ProxySQL will proxy to
+# Each server belongs to a hostgroup (0=primary, 1=shadow)
 mysql_servers=
 (
-    # Primary MySQL Server
+    # PRIMARY MYSQL SERVER (Hostgroup 0)
+    # This is your main production MySQL server
     {
+        # Server address: host.docker.internal allows Docker container
+        # to access MySQL servers running on the host machine
         address="host.docker.internal"
+        
+        # MySQL server port (standard MySQL port)
         port=3306
+        
+        # Hostgroup ID: 0 = Primary server group
+        # All traffic goes here by default
         hostgroup=0
+        
+        # Server status: ONLINE = active and accepting connections
+        # Other options: OFFLINE, SHUNNED, MAINTENANCE
         status="ONLINE"
+        
+        # Server weight: higher weight = more traffic routed here
+        # Used for load balancing (not relevant for single server)
         weight=1000
     },
-    # Shadow MySQL Server
+    
+    # SHADOW MYSQL SERVER (Hostgroup 1)
+    # This is your testing/analysis MySQL server
+    # Receives mirrored traffic from the primary server
     {
+        # Server address: same as primary, but different port
         address="host.docker.internal"
+        
+        # MySQL server port (different from primary)
         port=3307
+        
+        # Hostgroup ID: 1 = Shadow server group
+        # Receives mirrored traffic only
         hostgroup=1
+        
+        # Server status: ONLINE = active and accepting connections
         status="ONLINE"
+        
+        # Server weight: same as primary for balanced mirroring
         weight=1000
     }
 )
 
-# Users
+# =============================================================================
+# MYSQL USERS CONFIGURATION
+# =============================================================================
+# Define users that can connect through ProxySQL
+# These users must exist on the backend MySQL servers
 mysql_users=
 (
     {
+        # Username: must match a user on your MySQL servers
         username="root"
+        
+        # Password: empty string means no password
+        # In production, use strong passwords!
         password=""
+        
+        # Default hostgroup: where traffic goes if no query rules match
+        # 0 = Primary server (MySQL A)
         default_hostgroup=0
+        
+        # User status: 1 = active, 0 = disabled
         active=1
     }
 )
 
-# Query rules - Mirror ALL queries to shadow server
+# =============================================================================
+# QUERY RULES CONFIGURATION
+# =============================================================================
+# Define rules for routing and mirroring queries
+# Rules are processed in order (rule_id), first match wins
 mysql_query_rules=
 (
+    # TRAFFIC MIRRORING RULE
+    # This rule mirrors ALL queries to the shadow server
     {
+        # Rule ID: processing order (lower numbers processed first)
         rule_id=1
+        
+        # Rule status: 1 = active, 0 = disabled
         active=1
+        
+        # Match pattern: regular expression to match queries
+        # ".*" = matches ALL queries (everything)
+        # Other examples:
+        #   "^SELECT.*" = only SELECT queries
+        #   "^INSERT.*" = only INSERT queries
+        #   ".*users.*" = queries containing "users"
         match_pattern=".*"
+        
+        # Destination hostgroup: where the query goes normally
+        # 0 = Primary server (MySQL A)
         destination_hostgroup=0
+        
+        # Mirror hostgroup: where the query is also sent (mirrored)
+        # 1 = Shadow server (MySQL B)
+        # This enables traffic shadowing!
         mirror_hostgroup=1
+        
+        # Apply flag: 1 = stop processing more rules after this match
+        # 0 = continue to next rule
         apply=1
     }
 )
