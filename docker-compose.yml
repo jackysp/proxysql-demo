@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  proxysql:
+    image: proxysql/proxysql:2.5.5
+    platform: linux/amd64  # Ensure compatibility with Apple Silicon
+    container_name: proxysql-demo
+    ports:
+      - "6032:6032"  # ProxySQL admin port
+      - "6033:6033"  # ProxySQL MySQL port
+    volumes:
+      - ./proxysql.cnf:/etc/proxysql.cnf
+      - ./sql_scripts:/var/lib/proxysql/scripts
+    networks:
+      - proxysql-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysql", "-h127.0.0.1", "-P6032", "-uadmin", "-padmin", "-e", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  proxysql-network:
+    driver: bridge
