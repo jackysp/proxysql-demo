@@ -1,0 +1,21 @@
+# Ignore Docker volumes and temporary files
+sql_scripts/
+.DS_Store
+*.log
+
+# Ignore sysbench temporary files
+/tmp/
+*.tmp
+
+# Ignore any local MySQL data directories
+mysql_data/
+mysql_shadow_data/
+
+# Ignore any editor temporary files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore any local test data
+test_results/

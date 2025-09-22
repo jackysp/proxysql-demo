@@ -1,0 +1,116 @@
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+    admin_credentials="admin:admin"
+    mysql_ifaces="0.0.0.0:6032"
+}
+
+mysql_variables=
+{
+    threads=4
+    max_connections=2048
+    default_query_delay=0
+    default_query_timeout=36000000
+    have_compress=true
+    poll_timeout=2000
+    interfaces="0.0.0.0:6033"
+    default_schema="information_schema"
+    stacksize=1048576
+    server_version="5.5.30"
+    connect_timeout_server=3000
+    monitor_username="monitor"
+    monitor_password="monitor"
+    monitor_history=600000
+    monitor_connect_interval=60000
+    monitor_ping_interval=10000
+    ping_interval_server_msec=120000
+    ping_timeout_server=500
+    commands_stats=true
+    sessions_sort=true
+    connect_retries_on_failure=10
+}
+
+# MySQL Servers Configuration
+mysql_servers=
+(
+    # Primary MySQL Server (MySQL A)
+    {
+        address="host.docker.internal"
+        port=3306
+        hostgroup=0
+        status="ONLINE"
+        weight=1000
+        compression=0
+        max_connections=1000
+        max_replication_lag=10
+        use_ssl=0
+        max_latency_ms=0
+        comment="Primary MySQL Server"
+    },
+    # Shadow MySQL Server (MySQL B)
+    {
+        address="host.docker.internal"
+        port=3307
+        hostgroup=1
+        status="ONLINE"
+        weight=1000
+        compression=0
+        max_connections=1000
+        max_replication_lag=10
+        use_ssl=0
+        max_latency_ms=0
+        comment="Shadow MySQL Server"
+    }
+)
+
+# MySQL Users Configuration
+mysql_users=
+(
+    {
+        username="root"
+        password="password"
+        default_hostgroup=0
+        active=1
+    },
+    {
+        username="sbtest"
+        password="password"
+        default_hostgroup=0
+        active=1
+    }
+)
+
+# Query Rules for Traffic Shadowing
+mysql_query_rules=
+(
+    # Rule to mirror SELECT queries to shadow server
+    {
+        rule_id=1
+        active=1
+        match_pattern="^SELECT.*"
+        destination_hostgroup=0
+        mirror_hostgroup=1
+        apply=1
+        comment="Mirror SELECT queries to shadow server"
+    },
+    # Rule for INSERT/UPDATE/DELETE - only to primary
+    {
+        rule_id=2
+        active=1
+        match_pattern="^(INSERT|UPDATE|DELETE).*"
+        destination_hostgroup=0
+        apply=1
+        comment="Write operations only to primary"
+    }
+)
+
+# Monitor Configuration
+mysql_group_replication_hostgroups=
+(
+)
+
+# Scheduler for monitoring
+scheduler=
+(
+)
