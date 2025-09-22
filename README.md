@@ -7,14 +7,13 @@ This repository demonstrates how to use ProxySQL for traffic shadowing on **macO
 - **Traffic Shadowing**: Routes primary traffic to MySQL A while mirroring (shadowing) SELECT queries to MySQL B
 - **Apple Silicon Compatible**: Fully optimized for macOS with Apple Silicon (M1/M2/M3)
 - **Docker-based**: Uses Docker containers for easy setup and cleanup
-- **Automated Testing**: Includes sysbench validation to verify shadowing works correctly
+- **Simple Testing**: Uses MySQL client for easy traffic shadowing validation
 
 ## 📋 Prerequisites
 
 ### Required Software
 - **Docker Desktop** for Mac - [Install here](https://www.docker.com/products/docker-desktop/)
 - **MySQL Client** - Install via Homebrew: `brew install mysql-client`
-- **Sysbench** - Install via Homebrew: `brew install sysbench`
 
 ### Required MySQL Servers
 You need two MySQL servers running:
@@ -165,13 +164,13 @@ mysql -h127.0.0.1 -P3306 -uroot -e "SELECT 1"
 mysql -h127.0.0.1 -P3307 -uroot -e "SELECT 1"
 ```
 
-**Sysbench errors**
+**Demo errors**
 ```bash
-# Verify sysbench installation
-sysbench --version
-
 # Test ProxySQL connectivity
 mysql -h127.0.0.1 -P6033 -uroot -e "SELECT 1"
+
+# Check if ProxySQL is running
+docker ps | grep proxysql-demo
 ```
 
 ### Port Conflicts
@@ -188,9 +187,10 @@ If you have existing MySQL installations:
 docker compose down
 ```
 
-### Clean Up Generated Reports
+### Clean Up Demo Data
 ```bash
-rm -f sysbench_report_*.txt shadow_validation_*.txt
+# Clean up demo database
+mysql -h127.0.0.1 -P6033 -uroot -e "DROP DATABASE IF EXISTS demo;"
 ```
 
 ### Complete Cleanup

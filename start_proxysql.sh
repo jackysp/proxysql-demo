@@ -206,7 +206,7 @@ main() {
     
     echo
     log_success "ProxySQL setup completed!"
-    log_info "Use './sysbench_demo.sh' to test traffic shadowing"
+    log_info "Use './demo.sh' to test traffic shadowing"
     echo
     log_info "To stop ProxySQL: docker compose down"
 }
