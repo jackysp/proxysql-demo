@@ -83,7 +83,7 @@ INSERT INTO test VALUES (1, 'test1'), (2, 'test2');
 
 -- Final SELECT query to verify data
 SELECT * FROM test;
-" 2>/dev/null
+" 2>err.log
 echo
 
 # =============================================================================
