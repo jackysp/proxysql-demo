@@ -4,10 +4,12 @@ This repository demonstrates how to use ProxySQL for traffic shadowing on **macO
 
 ## 🎯 What This Demo Does
 
-- **Traffic Shadowing**: Routes primary traffic to MySQL A while mirroring (shadowing) SELECT queries to MySQL B
+- **Traffic Shadowing**: Routes primary traffic to MySQL A while mirroring (shadowing) ALL queries to MySQL B
+- **Performance Monitoring**: Comprehensive performance and latency analysis using sysbench workloads
+- **Real-time Monitoring**: Live performance metrics and connection pool statistics
 - **Apple Silicon Compatible**: Fully optimized for macOS with Apple Silicon (M1/M2/M3)
 - **Docker-based**: Uses Docker containers for easy setup and cleanup
-- **Simple Testing**: Uses MySQL client for easy traffic shadowing validation
+- **Multiple Demo Types**: Simple traffic validation and comprehensive performance testing
 
 ## 📋 Prerequisites
 
@@ -42,9 +44,22 @@ cd proxysql-demo
 
 ### 3. Test Traffic Shadowing
 
+Choose your demo type:
+
 ```bash
-# Run simple demo (reentrant - safe to run multiple times)
+# Simple traffic shadowing demo (reentrant - safe to run multiple times)
 ./demo.sh
+
+# OR comprehensive performance & latency monitoring demo
+./performance_demo_simple.sh
+```
+
+### 4. Real-time Monitoring (Optional)
+
+In another terminal, monitor performance in real-time:
+
+```bash
+./monitor_performance.sh
 ```
 
 That's it! 🎉
@@ -54,10 +69,13 @@ That's it! 🎉
 ```text
 proxysql-demo/
 ├── README.md                    # This file
+├── PERFORMANCE_DEMO.md          # Detailed performance demo documentation
 ├── docker-compose.yml           # Docker composition for ProxySQL  
 ├── proxysql.cnf                 # Minimal ProxySQL configuration (heavily commented)
 ├── start_proxysql.sh            # Start ProxySQL (reentrant)
-└── demo.sh                      # Simple traffic demo (reentrant)
+├── demo.sh                      # Simple traffic demo (reentrant)
+├── performance_demo_simple.sh   # Comprehensive performance & latency demo
+└── monitor_performance.sh       # Real-time performance monitoring
 ```
 
 ## ⚙️ How It Works
@@ -95,9 +113,9 @@ The `start_proxysql.sh` script:
 3. ⚙️ Loads configuration into ProxySQL runtime
 4. 📊 Shows current status and statistics
 
-### Simple Demo Workflow
+### Demo Workflows
 
-**Traffic Demo (`demo.sh`)**:
+**Simple Traffic Demo (`demo.sh`)**:
 
 1. ✅ Checks if ProxySQL is running
 2. 🧹 Resets ProxySQL statistics for clean results
@@ -105,6 +123,28 @@ The `start_proxysql.sh` script:
 4. ⚡ Executes 10 mixed queries through ProxySQL
 5. 📊 Shows AFTER query counts (proving mirroring)
 6. 📋 Shows the query rule that enables mirroring
+
+**Performance Demo (`performance_demo_simple.sh`)**:
+
+1. ✅ Checks prerequisites (ProxySQL, MySQL servers)
+2. 🧹 Resets statistics and cleans up test data
+3. 📊 Collects baseline performance measurements
+4. 🔧 Sets up test database and tables with realistic data
+5. ⚡ Runs multiple workload tests (read-only, write-only, mixed, high concurrency)
+6. 🔍 Performs detailed latency analysis
+7. 📈 Collects comprehensive performance statistics
+8. 🔄 Verifies traffic mirroring between servers
+9. 🧹 Cleans up test data
+
+**Real-time Monitoring (`monitor_performance.sh`)**:
+
+1. ✅ Checks ProxySQL connectivity
+2. 📊 Displays real-time connection pool statistics
+3. 📈 Shows query distribution and hit rates
+4. 🔄 Verifies traffic mirroring status
+5. ⚡ Provides performance summary metrics
+6. 💻 Monitors system resources
+7. 🔧 Shows ProxySQL process information
 
 **Start ProxySQL (`start_proxysql.sh`)**:
 
@@ -245,6 +285,7 @@ mysql_servers=
 - [ProxySQL Documentation](https://proxysql.com/documentation/)
 - [ProxySQL GitHub](https://github.com/sysown/proxysql)
 - [Traffic Mirroring Best Practices](https://proxysql.com/documentation/traffic-mirroring/)
+- [Performance Demo Documentation](PERFORMANCE_DEMO.md) - Detailed guide for performance monitoring
 
 ## 🤝 Contributing
 

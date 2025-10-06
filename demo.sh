@@ -36,10 +36,9 @@ echo
 # =============================================================================
 # STATISTICS RESET
 # =============================================================================
-# Clear ProxySQL's query cache and statistics for clean measurement
-# This ensures we start with zero query counts for accurate comparison
-echo "🔄 Resetting statistics..."
-docker exec proxysql-demo mysql -h127.0.0.1 -P6032 -uadmin -padmin -e "PROXYSQL FLUSH QUERY CACHE;" 2>/dev/null
+# Note: ProxySQL stats tables are read-only and accumulate over time
+# We'll compare before/after measurements to show the traffic shadowing effect
+echo "🔄 Recording baseline measurements..."
 echo
 
 # =============================================================================
